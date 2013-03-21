@@ -11,7 +11,7 @@
 #import "JSON.h"
 #import "FriendsView.h"
 #import "EducationView.h"
-@interface ProfileInfoView : UIViewController {
+@interface ProfileInfoView : UIViewController<UITableViewDataSource,UITableViewDelegate> {
     UITableView *ProfileTable;
     UIImageView *proImg;
     NSString *str;

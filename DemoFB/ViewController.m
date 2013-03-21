@@ -34,190 +34,86 @@
 	// Do any additional setup after loading the view, typically from a nib.
 }
 -(void)Signin{
-    NSString *appId = @"200273063433244";
-    NSString *permissions = @"publish_stream,user_birthday,read_friendlists,user_relationships,user_likes";
+    
+    alert= [[UIAlertView alloc] initWithTitle:@"Loading....." message:nil delegate:self cancelButtonTitle:nil otherButtonTitles: nil] ;
+    [alert show];
+    UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    // Adjust the indicator so it is up a few pixels from the bottom of the alert
+    activityIndicator.center = CGPointMake( 140,  65);
+    [activityIndicator startAnimating];
+    [alert addSubview:activityIndicator];
+    
+    NSDictionary *options = @{
+     ACFacebookAppIdKey: @"312835692060133",
+     ACFacebookPermissionsKey:  @[@"email", @"read_friendlists",@"user_birthday",@"user_likes",@"user_relationships",@"publish_stream"],
+   ACFacebookAudienceKey: ACFacebookAudienceFriends
+    };
+
+    appdell=(AppDelegate*)[UIApplication sharedApplication].delegate;
+    appdell.accountStore=nil;
+    appdell.facebookAccount=nil;
+    if(!appdell.accountStore)
+        appdell.accountStore = [[ACAccountStore alloc] init];
    
-    webview =[[UIWebView alloc]initWithFrame:CGRectMake(10, 10, 300, 430)];
-    webview.scalesPageToFit=YES;
-    webview.layer.cornerRadius = 6;
-    webview.layer.borderColor = [UIColor blackColor].CGColor;
-    webview.layer.borderWidth = 1;   
-    webview.delegate=self;
-    _spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:
-                UIActivityIndicatorViewStyleGray];
-    _spinner.center=CGPointMake(160, 240);
-    [webview addSubview:_spinner];
+    ACAccountType *facebookTypeAccount = [appdell.accountStore accountTypeWithAccountTypeIdentifier:ACAccountTypeIdentifierFacebook];
     
-    UIButton *btn=[UIButton buttonWithType:UIButtonTypeCustom];
-    btn.frame=CGRectMake(279,-7,28, 28);
-    [btn setImage:[UIImage imageNamed:@"close@2x.png"] forState:UIControlStateNormal];
-    [btn addTarget:self action:@selector(close:) forControlEvents:UIControlEventTouchUpInside];
-    [webview addSubview:btn];
-    NSString *redirectUrlString = @"http://www.facebook.com/connect/login_success.html";
-    NSString *authFormatString = @"https://graph.facebook.com/oauth/authorize?client_id=%@&redirect_uri=%@&scope=%@&type=user_agent&display=touch";
-    
-    NSString *urlString = [NSString stringWithFormat:authFormatString, appId, redirectUrlString, permissions];
-    
-    NSURL *url = [NSURL URLWithString:urlString];
-    NSURLRequest *request = [NSURLRequest requestWithURL:url];
-    
-    [webview loadRequest:request];	   
-    [self.view addSubview:webview];
-    
-    // amimations to show a webview
-    CABasicAnimation *scaoleAnimation  = [CABasicAnimation animationWithKeyPath:@"transform.scale"];
-    scaoleAnimation.duration = 0.5;
-    scaoleAnimation.autoreverses = NO;
-    scaoleAnimation.fromValue = [NSNumber numberWithFloat:1.0];
-    scaoleAnimation.toValue = [NSNumber numberWithFloat:1.5];
-    
-    
-    CAAnimationGroup *group = [CAAnimationGroup animation];
-    group.autoreverses = NO;
-    group.duration = 1.0;
-    group.animations = [NSArray arrayWithObjects: scaoleAnimation, nil];        
-    [webview.layer addAnimation:group forKey:@"stop"];
-    
-    
+    [appdell.accountStore requestAccessToAccountsWithType:facebookTypeAccount
+                                           options:options
+                                        completion:^(BOOL granted, NSError *error) {
+                                            if(granted){
+                                                NSArray *accounts = [appdell.accountStore accountsWithAccountType:facebookTypeAccount];
+                                                appdell.facebookAccount = [accounts lastObject];
+                                                NSLog(@"Success %@",appdell.facebookAccount);
+                                                
+                                                [self me];
+                                            }else{
+                                                // ouch
+                                                [alert dismissWithClickedButtonIndex:0 animated:YES];
+
+                                                if([error code]==6)
+                                                    [self alertview:@"Error" messsage:@"Account not found. Please setup your account in settings app." tag:0];
+                                                else
+                                                    [self alertview:@"Error" messsage:@"Account access denied." tag:0];
+                                                NSLog(@"Error: %@", error);
+                                            }
+                                        }];
 }
 
--(void)close:(id)sender{
-    
-    webview.hidden=YES;
-}
 
+- (void)me{
+    NSURL *meurl = [NSURL URLWithString:@"https://graph.facebook.com/me"];
+    
+    SLRequest *merequest = [SLRequest requestForServiceType:SLServiceTypeFacebook
+                                              requestMethod:SLRequestMethodGET
+                                                        URL:meurl
+                                                 parameters:nil];
+    
+    merequest.account =appdell.facebookAccount;
+    
+    [merequest performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
+        
+        [alert dismissWithClickedButtonIndex:0 animated:YES];
+
+        NSString *meDataString = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+        
+        NSMutableDictionary *responceJson=[meDataString JSONValue];
+        NSLog(@"%@", responceJson);
+        ProfileInfoView *proview=[[ProfileInfoView alloc]init];
+        proview.str=meDataString;
+        [self.navigationController pushViewController:proview animated:YES];
+    }];
+    
+}
 // Web view delegate methods
-- (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error{
-    webview.hidden=YES;
-    
-    [_spinner stopAnimating];
-    if (Redirect) {
-        [self Signin];
-
-    }
-        
-}
-- (void)webViewDidStartLoad:(UIWebView *)webView { 
-    
-    [_spinner startAnimating];
-}
-
--(void)webViewDidFinishLoad:(UIWebView *)webView
-{
-    
-    [_spinner stopAnimating];
-    
-}
 
 
-- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
+-(UIAlertView*)alertview:(NSString*)title messsage:(NSString*)msg tag:(int)tagvalue{
     
-    NSString *urlString = request.URL.absoluteString;
+    UIAlertView *alerta=[[UIAlertView alloc]initWithTitle:title message:msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles: nil];
+    alerta.tag=tagvalue;
+    [alerta show];
+    return alerta;
     
-    [self checkForAccessToken:urlString]; 
-    
-    
-    return TRUE;
-}
-// Getting the access token of facebook and storing in nsuserdefaults
--(void)checkForAccessToken:(NSString *)urlString {
-    NSError *error;
-    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"access_token=(.*)&" options:0 error:&error];
-    if (regex != nil) {
-        NSTextCheckingResult *firstMatch = [regex firstMatchInString:urlString options:0 range:NSMakeRange(0, [urlString length])];
-        // NSLog(@" before token ");
-        if (firstMatch) {
-            NSRange accessTokenRange = [firstMatch rangeAtIndex:1];
-            NSString *accessToken = [urlString substringWithRange:accessTokenRange];
-            accessToken = [accessToken stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
-            // NSLog(@" aftr token ");
-            
-            if ([accessToken length]>0) {
-                NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-                [defaults setValue:accessToken forKey:@"Token"];
-                //  NSLog(@" Getting profile ");
-                
-                [self getfacebookprofile];
-            }        }
-    }
-}
-// Fetching facebook details with the access token
--(void)getfacebookprofile
-{
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSString *_accessToken=[defaults objectForKey:@"Token"];
-    
-    NSString *urlString = [NSString stringWithFormat:@"https://graph.facebook.com/me?access_token=%@", [_accessToken stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
-   // NSURL *url = [NSURL URLWithString:urlString];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init] ;
-    [request setURL:[NSURL URLWithString: urlString]];
-    [request setHTTPMethod:@"GET"];
-    //[request setHTTPBody:postDatastr];
-    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
-    
-    // Create Connection.
-    NSURLConnection  *conn = [[NSURLConnection alloc] initWithRequest:request delegate:self];
-    
-    if (conn) {
-        // The connection was established.
-        responceData = [[NSMutableData alloc] init];
-        NSLog( @"Data will be received from URL: %@", request.URL );
-    }
-    else
-    {
-        // The download could not be made.
-        NSLog( @"Data could not be received from: %@", request.URL );
-    }
-    
-    // PROBLEM - receivedString is NULL here.
-   // NSLog( @"From getContentURL: %@", postdata);
-
-    
-}
-
-#pragma mark Webservice methods.
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
-
-{
-    [responceData setLength:0];
-    
-}
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
-{
-    
-    [responceData appendData:data];
-    
-}
-- (void)connection:(NSURLConnection *)connectiondidFailWithError:(NSError *)error
-
-{   
-    NSLog(@"Connection failed! Error - %@ %@",[error localizedDescription],
-          [[error userInfo] objectForKey:NSURLErrorFailingURLStringErrorKey]);
-    
-    UIAlertView *AlertErr=[[UIAlertView alloc]initWithTitle:@"Message" message:[error localizedDescription] delegate:self cancelButtonTitle:@"Ok" otherButtonTitles: nil];
-    [AlertErr show];
-    
-}
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection
-
-{
-    NSString *loginStatus = [[NSString alloc] initWithBytes: [responceData mutableBytes] length:[responceData length] encoding:NSUTF8StringEncoding];
-    NSLog(@"finish loading data %@",loginStatus);
-   // NSMutableDictionary *responseJSON = [loginStatus JSONValue];
-    NSMutableDictionary *responceJson=[loginStatus JSONValue];
-    NSString *uid = [responceJson objectForKey:@"id"];
-    Redirect=YES;
-    webview.hidden=YES;
-
-    if ([uid length]>0 && Redirect) {
-        
-    ProfileInfoView *proview=[[ProfileInfoView alloc]init];
-    proview.str=loginStatus;
-    [self.navigationController pushViewController:proview animated:YES];
-        Redirect=NO;
-    }
-   // [proview release];
-
 }
 
 - (void)viewDidUnload

@@ -49,7 +49,7 @@ UIAlertView *alert;
 - (void)viewDidLoad
 {
     friendsArray=[[NSMutableArray alloc]init];
-
+    AppDelegate *appdell=(AppDelegate*)[UIApplication sharedApplication].delegate;
     
      alert= [[UIAlertView alloc] initWithTitle:@"Loading....." message:nil delegate:self cancelButtonTitle:nil otherButtonTitles: nil] ;
     [alert show];
@@ -59,52 +59,71 @@ UIAlertView *alert;
     [activityIndicator startAnimating];
     [alert addSubview:activityIndicator]; 
     
-// Requesting For the friends list by the access token stored in NSUser defaults    
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    NSString *_accessToken=[defaults objectForKey:@"Token"];
-    NSString *urlString;
+    [self CallTable];
+// Requesting friends list
     if (indexValue==3) {
         self.navigationItem.title=@"Friends List";
 
-     urlString = [NSString stringWithFormat:@"https://graph.facebook.com/me/friends?access_token=%@", [_accessToken stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+    // urlString = [NSString stringWithFormat:@"https://graph.facebook.com/me/friends?access_token=%@", [_accessToken stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        NSURL *meurl = [NSURL URLWithString:@"https://graph.facebook.com/me/friends"];
+        
+        SLRequest *merequest = [SLRequest requestForServiceType:SLServiceTypeFacebook
+                                                  requestMethod:SLRequestMethodGET
+                                                            URL:meurl
+                                                     parameters:nil];
+        
+        merequest.account = appdell.facebookAccount;
+        
+        [merequest performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
+            
+            [alert dismissWithClickedButtonIndex:0 animated:YES];
+
+            NSString *meDataString = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+            
+            NSMutableDictionary *responceJson=[meDataString JSONValue];
+            NSLog(@"getting friends %@", responceJson);
+             friendsArray=[[responceJson objectForKey:@"data"] copy];
+            
+            [friendsTB reloadData];
+        }];
+
     }else {
         
         self.navigationItem.title=@"User Likes";
 
-        urlString = [NSString stringWithFormat:@"https://graph.facebook.com/me/likes?access_token=%@", [_accessToken stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+      //  urlString = [NSString stringWithFormat:@"https://graph.facebook.com/me/likes?access_token=%@", [_accessToken stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        NSURL *meurl = [NSURL URLWithString:@"https://graph.facebook.com/me/likes"];
+        
+        SLRequest *merequest = [SLRequest requestForServiceType:SLServiceTypeFacebook
+                                                  requestMethod:SLRequestMethodGET
+                                                            URL:meurl
+                                                     parameters:nil];
+        
+        merequest.account = appdell.facebookAccount;
+        
+        [merequest performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
+            
+            [alert dismissWithClickedButtonIndex:0 animated:YES];
+
+            NSString *meDataString = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+            NSMutableDictionary *responceJson=[meDataString JSONValue];
+            NSLog(@"getting likes  %@", responceJson);
+            friendsArray=[[responceJson objectForKey:@"data"] copy];
+            
+            [friendsTB reloadData];
+        }];
 
     }
     
-  //  NSURL *url = [NSURL URLWithString:urlString];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init] ;
-    [request setURL:[NSURL URLWithString: urlString]];
-    [request setHTTPMethod:@"GET"];
-    //[request setHTTPBody:postDatastr];
-    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
     
-    // Create Connection.
-    NSURLConnection  *conn = [[NSURLConnection alloc] initWithRequest:request delegate:self];
-    
-    if (conn) {
-        // The connection was established.
-        responceData = [[NSMutableData alloc] init];
-        NSLog( @"Data will be received from URL: %@", request.URL );
-    }
-
-   
     [super viewDidLoad];
     
-    [self performSelector:@selector(CallTable) withObject:nil afterDelay:4];
    
-    NSTimer *timer=[NSTimer scheduledTimerWithTimeInterval:5 target:self selector:@selector(Closealert) userInfo:nil repeats:NO];
 }
--(void)Closealert{
-    // Dissmissing the alert view
-    [alert dismissWithClickedButtonIndex:0 animated:YES];
-}
+
 -(void)CallTable{
 // Creating a table view    
-    UITableView *friendsTB=[[UITableView alloc]initWithFrame:CGRectMake(0,0, 320,410) style:UITableViewStylePlain];
+    friendsTB=[[UITableView alloc]initWithFrame:CGRectMake(0,0, 320,410) style:UITableViewStylePlain];
     friendsTB.separatorStyle=UITableViewCellSeparatorStyleSingleLine;
     friendsTB.dataSource = self;
     friendsTB.delegate = self;
@@ -112,64 +131,36 @@ UIAlertView *alert;
    // [friendsTB release];
 
 }
-//*** Getting Response for the request
+
+#pragma mark-------------Tableview Delegates
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-#warning Potentially incomplete method implementation.
     // Return the number of sections.
     return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-#warning Incomplete method implementation.
     // Return the number of rows in the section.
    // NSLog(@"count%i",[friendsArray count]);
     return [friendsArray count];
 }
-#define ASYNC_IMAGE_TAG 9999
-#define LABEL_TAG 8888
+
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     static NSString *CellIdentifier = @"Cell";
-    AsyncImageView *asyncImageView = nil;
-    UILabel *label = nil;
 
-    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
-//    if (cell == nil) {
-//        cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier] autorelease];
-//    }
-    if (cell == nil) {
-       // NSLog(@"cell nil");
-        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
-        CGRect frame;
-        frame.origin.x = 0;
-        frame.origin.y = 0;
-        frame.size.width = 52;
-        frame.size.height = 39;
-        asyncImageView = [[AsyncImageView alloc] initWithFrame:frame];
-        asyncImageView.tag = ASYNC_IMAGE_TAG;
-        [cell.contentView addSubview:asyncImageView];
-        frame.origin.x = 52 + 10;
-        frame.size.width = 200;
-        label = [[UILabel alloc] initWithFrame:frame];
-        label.tag = LABEL_TAG;
-        [cell.contentView addSubview:label];
-        cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-    } else {
-        //NSLog(@"cell not nil");
-        
-        asyncImageView = (AsyncImageView *) [cell.contentView viewWithTag:ASYNC_IMAGE_TAG];
-        label = (UILabel *) [cell.contentView viewWithTag:LABEL_TAG];
+    CustomCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+   if (cell == nil) {
+        cell = [[CustomCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
     }
-    // Loading images asynchrounously.......
+     // Loading images asynchrounously.......
 
     NSString *urlString = [NSString stringWithFormat:@"http://graph.facebook.com/%@/picture?type=large",
                            [[friendsArray objectAtIndex:indexPath.row] objectForKey:@"id" ]];
-    NSURL *url = [NSURL URLWithString:urlString];
-    [asyncImageView loadImageFromURL:url];
-    
-    label.text = [[friendsArray objectAtIndex:indexPath.row] objectForKey:@"name"];
+   NSURL *url = [NSURL URLWithString:urlString];
+    [cell.profileImage setImageWithURL:url placeholderImage:[UIImage imageNamed:@"pic.png"]];
+    cell.namelbl.text = [[friendsArray objectAtIndex:indexPath.row] objectForKey:@"name"];
     
    // cell.textLabel.text=[[friendsArray objectAtIndex:indexPath.row] objectForKey:@"name"];
     return cell;

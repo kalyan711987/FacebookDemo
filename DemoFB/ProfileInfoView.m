@@ -17,8 +17,8 @@ NSArray *schoolArray;
 {
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self) {
-        UIBarButtonItem *newBackButton = [[UIBarButtonItem alloc] initWithTitle: @"Logout" style: UIBarButtonItemStyleBordered target: self action: @selector(Logout:)];       
-        self.navigationItem.leftBarButtonItem = newBackButton; 
+       // UIBarButtonItem *newBackButton = [[UIBarButtonItem alloc] initWithTitle: @"Logout" style: UIBarButtonItemStyleBordered target: self action: @selector(Logout:)];
+       /// self.navigationItem.leftBarButtonItem = newBackButton;
        // [newBackButton release];
         // Custom initialization
     }
@@ -129,6 +129,10 @@ NSArray *schoolArray;
     }
     
 }
+
+#pragma mark-------------Tableview Delegates
+
+
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     if (section==0) {
         return 1;
@@ -140,6 +144,7 @@ NSArray *schoolArray;
     }else if(section==3){
         return 1;
     }
+    return nil;
 }
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
        return 35;

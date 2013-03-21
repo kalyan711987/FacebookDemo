@@ -9,14 +9,19 @@
 #import <UIKit/UIKit.h>
 #import "AppDelegate.h"
 #import "ProfileInfoView.h"
+#import <Accounts/Accounts.h>
+#import <Social/Social.h>
 @interface ViewController : UIViewController<UIWebViewDelegate>{
-   UIWebView *webview;
-   UIActivityIndicatorView *_spinner;
+   
+    UIActivityIndicatorView *_spinner;
     NSMutableData *responceData;
     BOOL Redirect;
-    
+    AppDelegate *appdell;
+    UIAlertView *alert;
+
 }
 @property(nonatomic,retain)    UIWebView *webview;
+
 -(void)checkForAccessToken:(NSString *)urlString;
 -(void)checkLoginRequired:(NSString *)urlString;
 @end

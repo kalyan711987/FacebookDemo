@@ -8,11 +8,16 @@
 
 #import <UIKit/UIKit.h>
 #import "JSON.h"
-#import "AsyncImageView.h"
-@interface FriendsView : UIViewController {
+#import <Accounts/Accounts.h>
+#import <Social/Social.h>
+#import "AppDelegate.h"
+#import "CustomCell.h"
+#import "UIImageView+AFNetworking.h"
+@interface FriendsView : UIViewController<UITableViewDataSource,UITableViewDelegate> {
     NSMutableArray *friendsArray;
     int  indexValue;
     NSMutableData *responceData;
+    UITableView *friendsTB;
 }
 @property(nonatomic,assign)    int  indexValue;
 
