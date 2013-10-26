@@ -22,6 +22,4 @@
 }
 @property(nonatomic,retain)    UIWebView *webview;
 
--(void)checkForAccessToken:(NSString *)urlString;
--(void)checkLoginRequired:(NSString *)urlString;
 @end
